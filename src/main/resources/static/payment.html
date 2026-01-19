@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Razorpay Test</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h2>Razorpay Payment Test</h2>
+    <p>1. Create an Order first (backend).</p>
+    <p>2. Click 'Pay Now' to initiate payment.</p>
+    
+    <!-- User ID fixed for testing -->
+    <input type="text" id="userId" value="user1" placeholder="User ID">
+    <button onclick="createOrder()">1. Create Order</button>
+    <br><br>
+    <button onclick="startPayment()">2. Pay Now</button>
+
+    <div id="status"></div>
+
+    <script>
+        let currentOrderId = null;
+        let currentAmount = 500.0; // Fixed amount 500.00 (5 INR) for testing
+        const RAZORPAY_KEY = "rzp_live_S5gHB8BsrQp4E7"; // Using key from application.properties
+
+        async function createOrder() {
+            const userId = document.getElementById('userId').value;
+            
+            // 1. Create Order (Simulating cart checkout or direct order)
+            // Ideally we need items in cart, but for this test we'll assume cart has items 
+            // OR we'll just hit the order creation if the cart is ready. 
+            // To make it self-contained, let's just create a payment for a *dummy* order ID or handle the full flow.
+            // Since the user wants to "make a real transaction", let's follow the proper flow:
+            
+            // A. Create Order
+            try {
+                const response = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: userId })
+                });
+                
+                if (!response.ok) {
+                    document.getElementById('status').innerText = "Error creating order. Ensure Cart is not empty!";
+                    return;
+                }
+
+                const data = await response.json();
+                currentOrderId = data.id;
+                currentAmount = data.totalAmount;
+                document.getElementById('status').innerText = "Order Created: " + currentOrderId + " (Amt: " + currentAmount + ")";
+                return data;
+            } catch (e) {
+                console.error(e);
+                document.getElementById('status').innerText = "Error: " + e.message;
+            }
+        }
+
+        async function startPayment() {
+            if (!currentOrderId) {
+                alert("Please create an order first!");
+                return;
+            }
+
+            // 2. Create Payment (Get Razorpay Order ID)
+            const response = await fetch('/api/payments/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    orderId: currentOrderId,
+                    amount: currentAmount
+                })
+            });
+
+            const paymentData = await response.json();
+            const razorpayOrderId = paymentData.paymentId; // We stored rp_order_id here
+            
+            const options = {
+                "key": RAZORPAY_KEY, 
+                "amount": currentAmount * 100, 
+                "currency": "INR",
+                "name": "E-Commerce Test",
+                "description": "Test Transaction",
+                "order_id": razorpayOrderId, 
+                "handler": function (response){
+                    alert("Payment Successful! Payment ID: " + response.razorpay_payment_id);
+                    // Webhook will handle the rest on the backend
+                },
+                "prefill": {
+                    "name": "Test User",
+                    "email": "test@example.com",
+                    "contact": "9999999999"
+                },
+                "theme": {
+                    "color": "#3399cc"
+                }
+            };
+            
+            const rzp1 = new Razorpay(options);
+            rzp1.open();
+        }
+    </script>
+</body>
+</html>
