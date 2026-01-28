@@ -7,6 +7,7 @@ import com.example.e_commerce.model.Product;
 import com.example.e_commerce.repository.CartRepository;
 import com.example.e_commerce.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -18,6 +19,7 @@ import java.util.Optional;
 public class CartService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
+    private final ModelMapper modelMapper;
 
     public CartItem addToCart(AddToCartRequest request) {
         // Validate product exists
@@ -51,10 +53,7 @@ public class CartService {
         List<CartItemResponse> responses = new ArrayList<>();
 
         for (CartItem item : items) {
-            CartItemResponse response = new CartItemResponse();
-            response.setId(item.getId());
-            response.setProductId(item.getProductId());
-            response.setQuantity(item.getQuantity());
+            CartItemResponse response = modelMapper.map(item, CartItemResponse.class);
 
             Product product = productRepository.findById(item.getProductId()).orElse(null);
             response.setProduct(product);

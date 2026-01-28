@@ -4,6 +4,7 @@ import com.example.e_commerce.dto.OrderResponse;
 import com.example.e_commerce.model.*;
 import com.example.e_commerce.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final ProductRepository productRepository;
     private final PaymentRepository paymentRepository;
+    private final ModelMapper modelMapper;
 
     @Transactional
     public OrderResponse createOrder(String userId) {
@@ -76,11 +78,7 @@ public class OrderService {
         List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
         Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
 
-        OrderResponse response = new OrderResponse();
-        response.setId(order.getId());
-        response.setUserId(order.getUserId());
-        response.setTotalAmount(order.getTotalAmount());
-        response.setStatus(order.getStatus());
+        OrderResponse response = modelMapper.map(order, OrderResponse.class);
         response.setItems(items);
         response.setPayment(payment);
 
